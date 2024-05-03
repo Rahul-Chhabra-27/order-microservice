@@ -17,66 +17,47 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/status"
+	"rahulchhabra.io/config"
 	"rahulchhabra.io/jwt"
+	"rahulchhabra.io/model"
 	orderproto "rahulchhabra.io/proto/order"
 )
 
-var OrderCollection *mongo.Collection
-
 type OrderService struct {
 	orderproto.UnimplementedOrderServiceServer
-}
-type Order struct {
-	Id        primitive.ObjectID `bson:"_id,omitempty"`
-	Name      string             `bson:"name,omitempty"`
-	Price     int64              `bson:"price,omitempty"`
-	Quantity  int64              `bson:"quantity,omitempty"`
-	CreatedAt primitive.DateTime `bson:"createdAt,omitempty"`
-	UpdatedAt primitive.DateTime `bson:"updatedAt,omitempty"`
-}
-type Orders struct {
-	UserEmail  string             `bson:"email,omitempty"`
-	OrderArray []Order            `bson:"orders,omitempty"`
-	TotalPrice int64              `bson:"totalprice,omitempty"`
 }
 
 func (*OrderService) CreateOrder(ctx context.Context, req *orderproto.OrderRequest) (*orderproto.OrderResponse, error) {
 	fmt.Println("Creating Order")
 	email, ok := ctx.Value("email").(string)
 	if !ok {
-		return nil, status.Errorf(
-			codes.Internal,
-			"Unable to fetch userID from ctx",
-		)
+		// Internal server error..
+		return nil, config.ErrorMessage("Email not found in context", codes.Internal)
 	}
-	var orders []Order
-	for _, order := range req.Orders {
-		orders = append(orders, Order{
-			Name:      order.Name,
-			Price:     order.Price,
-			Quantity:  order.Quantity,
-			CreatedAt: primitive.DateTime(time.Now().UnixNano() / int64(time.Millisecond)),
-			UpdatedAt: primitive.DateTime(time.Now().UnixNano() / int64(time.Millisecond)),
-		})
-	}
-
-	myorder := Orders{
+	// Create a new order
+	myOrder := model.Order{
 		UserEmail: email,
-		OrderArray: orders,
-		TotalPrice: int64(20),
+		Name:      req.Order.Name,
+		Price:     req.Order.Price,
+		Quantity:  req.Order.Quantity,
+		CreatedAt: primitive.DateTime(time.Now().UnixNano() / int64(time.Millisecond)),
+		UpdatedAt: primitive.DateTime(time.Now().UnixNano() / int64(time.Millisecond)),
 	}
-	_, err := OrderCollection.InsertOne(context.Background(), myorder)
-	if err != nil {
-		return nil, status.Errorf(
-			codes.Internal,
-			fmt.Sprintf("Internal error: %s", err),
-		)
+	// Check if the order is already placed
+	if config.CheckIfTheOrderIsAlreadyExist(email,req.Order.Name) {
+		err := config.UpdateOrder(myOrder,ctx);
+		if err != nil {
+			log.Fatalf("Failed to update order: %s", err)
+			return nil,err;
+		} else {
+			return &orderproto.OrderResponse{
+				Message:    "Bravo! Order has been updated successfully",
+				StatusCode: int64(codes.OK),
+			},nil
+		}
+	} else {
+		return config.PlaceOrder(myOrder)
 	}
-	return &orderproto.OrderResponse{
-		TotalPrice: int64(20),
-		Orders:     req.Orders,
-	}, nil
 }
 
 // Responsible for starting the server
@@ -94,7 +75,7 @@ func startServer() {
 	db, err := mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("MONGO_URI")))
 
 	// Set the global variable to the collection
-	OrderCollection = db.Database("testdb").Collection("orders")
+	model.OrderCollection = db.Database("testdb").Collection("orders")
 
 	// Check for errors
 	if err != nil {
