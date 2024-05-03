@@ -19,12 +19,22 @@ message OrderResponse {
     int64 statusCode = 1;
     string message = 3;
 }
-
+message GetOrdersRequest {
+    string useremail = 1;
+}
+message GetOrdersResponse {
+    repeated Order orders = 1;
+}
 service OrderService {
     rpc CreateOrder(OrderRequest) returns (OrderResponse) {
         option (google.api.http) = {
             post: "/v1/order"
             body: "*"
+        };
+    };
+    rpc GetOrders(GetOrdersRequest) returns (GetOrdersResponse) {
+        option (google.api.http) = {
+            get: "/v1"
         };
     };
     rpc GetOrder(OrderRequest) returns (OrderResponse);

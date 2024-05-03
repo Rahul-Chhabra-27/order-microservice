@@ -24,6 +24,7 @@ func CheckIfTheOrderIsAlreadyExist(email string, name string) bool {
 func UpdateOrder(order model.Order, ctx context.Context) error {
 	update := bson.M{
 		"$set": bson.M{
+			"price":	 order.Price,
 			"quantity":  order.Quantity,
 			"updatedAt": order.UpdatedAt,
 		},
@@ -43,4 +44,25 @@ func PlaceOrder(myorder model.Order) (*orderproto.OrderResponse, error) {
 		Message:    "Bravo! Order has been placed successfully",
 		StatusCode: int64(codes.OK),
 	}, nil
+}
+func GetOrders(email string) (*orderproto.GetOrdersResponse,error) {
+	orders,err := model.OrderCollection.Find(context.Background(),model.Order{UserEmail: email});
+
+	if err != nil {
+		return nil,ErrorMessage("Could not fetch orders",codes.Internal)
+	}
+	var orderList []*orderproto.Order
+	for orders.Next(context.Background()) {
+		var order model.Order
+		orders.Decode(&order)
+		orderList = append(orderList,&orderproto.Order{
+			Id: order.Id.Hex(),
+			Name: order.Name,
+			Price: order.Price,
+			Quantity: order.Quantity,
+		})
+	}
+	return &orderproto.GetOrdersResponse{
+		Orders: orderList,
+	},nil
 }

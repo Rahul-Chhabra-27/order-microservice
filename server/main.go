@@ -59,7 +59,14 @@ func (*OrderService) CreateOrder(ctx context.Context, req *orderproto.OrderReque
 		return config.PlaceOrder(myOrder)
 	}
 }
-
+func (*OrderService) GetOrders(ctx context.Context, request *orderproto.GetOrdersRequest) (*orderproto.GetOrdersResponse, error) {
+	fmt.Println("Fetching orders")
+	email, ok := ctx.Value("email").(string)
+	if !ok {
+		return nil, config.ErrorMessage("Email not found in context", codes.Internal)
+	}
+	return config.GetOrders(email);
+}
 // Responsible for starting the server
 func startServer() {
 	godotenv.Load()
