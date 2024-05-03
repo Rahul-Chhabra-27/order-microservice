@@ -25,6 +25,13 @@ message GetOrdersRequest {
 message GetOrdersResponse {
     repeated Order orders = 1;
 }
+message UpdateOrderRequest {
+    Order order = 1;
+}
+message UpdateOrderResponse {
+    string message = 1;
+    int64 statusCode = 2;
+}
 service OrderService {
     rpc CreateOrder(OrderRequest) returns (OrderResponse) {
         option (google.api.http) = {
@@ -38,6 +45,11 @@ service OrderService {
         };
     };
     rpc GetOrder(OrderRequest) returns (OrderResponse);
-    rpc UpdateOrder(OrderRequest) returns (OrderResponse);
+    rpc UpdateOrder(UpdateOrderRequest) returns (UpdateOrderResponse) {
+        option (google.api.http) = {
+            put: "/v1/update"
+            body: "*"
+        };
+    }
     rpc DeleteOrder(OrderRequest) returns (OrderResponse);
 }

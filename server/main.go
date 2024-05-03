@@ -67,6 +67,24 @@ func (*OrderService) GetOrders(ctx context.Context, request *orderproto.GetOrder
 	}
 	return config.GetOrders(email);
 }
+func (*OrderService) UpdateOrder(ctx context.Context, request *orderproto.UpdateOrderRequest) (*orderproto.UpdateOrderResponse, error) {
+	updatedOrder := model.Order{
+		Name:      request.Order.Name,
+		Price:     request.Order.Price,
+		Quantity:  request.Order.Quantity,
+		UpdatedAt: primitive.DateTime(time.Now().UnixNano() / int64(time.Millisecond)),
+	}
+	response := config.UpdateOrder(updatedOrder,ctx);
+
+	if response == nil {
+		return &orderproto.UpdateOrderResponse{
+			Message:    "Bravo! Order has been updated successfully",
+			StatusCode: int64(codes.OK),
+		},nil
+	} else {
+		return nil,config.ErrorMessage(response.Error(),codes.Internal);
+	}
+}
 // Responsible for starting the server
 func startServer() {
 	godotenv.Load()
