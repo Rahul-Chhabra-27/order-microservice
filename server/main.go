@@ -85,6 +85,21 @@ func (*OrderService) UpdateOrder(ctx context.Context, request *orderproto.Update
 		return nil,config.ErrorMessage(response.Error(),codes.Internal);
 	}
 }
+func (*OrderService) DeleteOrder(ctx context.Context, request *orderproto.DeleteOrderRequest) (*orderproto.DeleteOrderResponse, error) {
+	
+	email, ok := ctx.Value("email").(string)
+	if !ok {
+		return nil, config.ErrorMessage("Email not found in context", codes.Internal)
+	}
+	err := config.DeleteOrder(email,request.Name)
+	if err != nil {
+		return nil,config.ErrorMessage("Could not delete order",codes.Internal)
+	}
+	return &orderproto.DeleteOrderResponse{
+		Message:    "Bravo! Order has been deleted successfully",
+		StatusCode: int64(codes.OK),
+	},nil
+}
 // Responsible for starting the server
 func startServer() {
 	godotenv.Load()

@@ -4,6 +4,7 @@ package proto;
 option go_package = "proto/order";
 import "google/api/annotations.proto";
 
+
 message Order {
     string id = 1;
     string name = 2;
@@ -32,24 +33,34 @@ message UpdateOrderResponse {
     string message = 1;
     int64 statusCode = 2;
 }
+message DeleteOrderRequest {
+    string name = 1;
+}
+message DeleteOrderResponse {
+    string message = 1;
+    int64 statusCode = 2;
+}
 service OrderService {
     rpc CreateOrder(OrderRequest) returns (OrderResponse) {
         option (google.api.http) = {
-            post: "/v1/order"
+            post: "/m2/order"
             body: "*"
         };
     };
     rpc GetOrders(GetOrdersRequest) returns (GetOrdersResponse) {
         option (google.api.http) = {
-            get: "/v1"
+            get: "/m2"
         };
     };
-    rpc GetOrder(OrderRequest) returns (OrderResponse);
     rpc UpdateOrder(UpdateOrderRequest) returns (UpdateOrderResponse) {
         option (google.api.http) = {
-            put: "/v1/update"
+            put: "/m2/update"
             body: "*"
         };
     }
-    rpc DeleteOrder(OrderRequest) returns (OrderResponse);
+    rpc DeleteOrder(DeleteOrderRequest) returns (DeleteOrderResponse) {
+        option (google.api.http) = {
+            delete: "/m1/delete/{name}",
+        };
+    }
 }
